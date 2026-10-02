@@ -2,7 +2,6 @@ import numpy as np
 
 
 def score(df):
-    """Amount anomaly: score each txn by how far above the customer's mean it is."""
     stats = df.groupby("customer")["amount"].agg(["mean", "std"])
     stats["std"] = stats["std"].fillna(0).clip(lower=1)
     z = (df["amount"] - df["customer"].map(stats["mean"])) / df["customer"].map(stats["std"])
