@@ -1,0 +1,4 @@
+pandas
+numpy
+kagglehub
+python-dotenv
