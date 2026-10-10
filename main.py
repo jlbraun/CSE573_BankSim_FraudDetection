@@ -5,7 +5,8 @@ import pandas as pd
 import kagglehub
 from dotenv import load_dotenv
 
-from detectors import amount_anomaly
+#### HIRA ADDED VELOCITY####
+from detectors import amount_anomaly, velocity
 # from tests import velocity        # teammate
 # from tests import category_risk   # teammate
 # from tests import timing          # teammate
@@ -28,7 +29,11 @@ for c in df.select_dtypes("object"):
 
 # Run each imported test, which all return a value between 0 and 1
 df["score_amount_anomaly"] = amount_anomaly.score(df)
+
 # this is where you would add the other tests once they are built
+# Transaction velocity — Hira Naseer
+df["velocity_count"] = velocity.counts(df)
+df["score_velocity"] = velocity.score(df)
 
 #Combine all the scores into a single score, this may be changed later
 df["score"] = df["score_amount_anomaly"]   # add weighted terms as tests arrive
@@ -49,3 +54,19 @@ print(df.nlargest(10, "score")[["customer", "amount", "category", "confidence_%"
 
 # uncomment the line below to save output as csv file
 # df.to_csv("scores.csv", index=False)
+
+
+# Display transaction velocity results — Hira Naseer
+print("\nTransaction velocity results:")
+print(
+    df[["customer", "step", "velocity_count", "score_velocity"]]
+    .head(10)
+    .to_string(index=False)
+)
+
+print("\nTop 10 highest velocity scores:")
+print(
+    df.nlargest(10, "score_velocity")[
+        ["customer", "step", "velocity_count", "score_velocity"]
+    ].to_string(index=False)
+)
