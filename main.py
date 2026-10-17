@@ -1,5 +1,6 @@
 import pandas as pd
 from detectors import amount_anomaly
+from detectors import category_risk   # Mansi Ganga Nayak
 #from detectors import SAMPLE_test
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
@@ -17,6 +18,9 @@ def acc(scores, labels):
 #This score will be used in acc function to compare against the actual labels
 train["amount_anomaly"] = amount_anomaly.score(train)
 test["amount_anomaly"]  = amount_anomaly.score(test)
+#category_risk learns category fraud rates from the labeled train split, so test rows never see their own labels
+train["category_risk"] = category_risk.score(train, train)
+test["category_risk"]  = category_risk.score(test, train)
 
 #combine detecors into ensemble scores using weights
 #right now only one detector exists, so weight = 1.0 and ensemble == amount_anomaly
@@ -29,11 +33,14 @@ test["score"]  = 1.0 * test["amount_anomaly"]
 #but Joseph will handle all that so focus on your individual detectors for now
 amount_anomaly_train = acc(train["amount_anomaly"], train["fraud"])
 amount_anomaly_test  = acc(test["amount_anomaly"],  test["fraud"])
+category_risk_train = acc(train["category_risk"], train["fraud"])
+category_risk_test  = acc(test["category_risk"],  test["fraud"])
 ensemble_train = acc(train["score"], train["fraud"])
 ensemble_test  = acc(test["score"],  test["fraud"])
 
 #output name and accuracy of each detector and the ensemble
 print(f"{'name':<18} {'train':>7} {'test'}")
 print(f"{'amount_anomaly':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
+print(f"{'category_risk':<20} {category_risk_train:.4f}  {category_risk_test:.4f}")
 #print(f"{'SAMPLE_detector':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
 print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
