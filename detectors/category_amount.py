@@ -25,12 +25,13 @@ def score(df, train=None):
     fallback = np.sort(ref_amounts.to_numpy())
     by_category = {c: np.sort(a.to_numpy()) for c, a in ref_amounts.groupby(ref_cats)}
 
-    cats = df["category"].astype(str).str.strip("'")
-    amounts = df["amount"].astype(float)
-    result = pd.Series(0.0, index=df.index, name="score_category_amount")
+    cats = df["category"].astype(str).str.strip("'").to_numpy()
+    amounts = df["amount"].astype(float).to_numpy()
+    result = np.zeros(len(df))
 
-    for c, a in amounts.groupby(cats):
+    for c in np.unique(cats):
         normal = by_category.get(c, fallback)
-        result[a.index] = np.searchsorted(normal, a.to_numpy(), side="right") / len(normal)
+        rows = cats == c
+        result[rows] = np.searchsorted(normal, amounts[rows], side="right") / len(normal)
 
-    return result
+    return pd.Series(result, index=df.index, name="score_category_amount")
