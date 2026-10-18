@@ -1,28 +1,11 @@
-# Category Amount Detector
-# Author: Pranav
-#
-# Fraudulent payments in BankSim tend to be much larger than normal payments of the same kind
-# (a $500 grocery bill is strange, a $500 hotel bill is not). This detector asks:
-# "what fraction of NORMAL payments in this category were smaller than or equal to this one?"
-#
-#     score = percentile of amount among non-fraud training payments in the same category
-#
-# Only non-fraud rows are used as the reference so fraud amounts don't make "normal" look bigger.
-# Categories never seen in training are compared against all normal training payments.
-# A score of 0.97 means "bigger than ~97% of normal payments in this category".
+# Category Amount Detector - Pranav
+# Percentile of amount among normal train payments in the same category.
 
 import numpy as np
 import pandas as pd
 
 
 def score(df, train=None):
-    """
-    Return a category amount score between 0 and 1 for every row of df.
-
-    train: data to learn normal amounts from. ALWAYS pass the training split when scoring test data,
-           e.g. category_amount.score(test, train). If omitted, df itself is used (only OK when df is
-           the training data). If train has a "fraud" column, fraud rows are left out of the reference.
-    """
     required = {"category", "amount"}
     missing = required - set(df.columns)
     if missing:

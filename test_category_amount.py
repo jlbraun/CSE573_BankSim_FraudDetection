@@ -28,7 +28,6 @@ class TestCategoryAmount(unittest.TestCase):
         self.assertEqual(category_amount.score(test, toy()).iloc[0], 0.5)
 
     def test_fraud_rows_left_out_of_reference(self):
-        # if the 9999 fraud row counted as normal, 5000 would only beat 4/5 of food payments
         test = pd.DataFrame({"category": ["food"], "amount": [5000.0]})
         self.assertEqual(category_amount.score(test, toy()).iloc[0], 1.0)
 

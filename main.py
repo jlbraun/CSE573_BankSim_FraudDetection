@@ -1,6 +1,6 @@
 import pandas as pd
 from detectors import amount_anomaly
-from detectors import merchant_risk, category_amount   # Pranav
+from detectors import merchant_risk, category_amount
 #from detectors import SAMPLE_test
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
@@ -18,7 +18,7 @@ def acc(scores, labels):
 #This score will be used in acc function to compare against the actual labels
 train["amount_anomaly"] = amount_anomaly.score(train)
 test["amount_anomaly"]  = amount_anomaly.score(test)
-#merchant_risk and category_amount learn from the train split, so test rows never see their own labels
+#learned from train only
 train["merchant_risk"] = merchant_risk.score(train, train)
 test["merchant_risk"]  = merchant_risk.score(test, train)
 train["category_amount"] = category_amount.score(train, train)

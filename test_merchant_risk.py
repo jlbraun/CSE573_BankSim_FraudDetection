@@ -24,8 +24,8 @@ class TestMerchantRisk(unittest.TestCase):
     def test_smoothing_pulls_toward_overall_rate(self):
         overall = toy()["fraud"].mean()
         scores = merchant_risk.score(toy(), smoothing=10)
-        self.assertTrue(overall < scores.iloc[0] < 1)   # risky merchant m1
-        self.assertTrue(0 < scores.iloc[3] < overall)   # safe merchant m2
+        self.assertTrue(overall < scores.iloc[0] < 1)
+        self.assertTrue(0 < scores.iloc[3] < overall)
 
     def test_test_rows_use_train_rates_not_their_own_labels(self):
         test = pd.DataFrame({"merchant": ["m1", "m2"], "fraud": [0, 1]})
