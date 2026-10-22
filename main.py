@@ -1,5 +1,6 @@
 import pandas as pd
-from detectors import amount_anomaly
+#### HIRA ADDED VELOCITY####
+from detectors import amount_anomaly, velocity
 from detectors import merchant_risk, category_amount
 from detectors import category_risk   # Mansi Ganga Nayak
 #from detectors import SAMPLE_test
