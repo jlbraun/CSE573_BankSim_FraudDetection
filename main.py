@@ -1,6 +1,7 @@
 import pandas as pd
 from detectors import amount_anomaly
 from detectors import merchant_risk, category_amount
+from detectors import category_risk   # Mansi Ganga Nayak
 #from detectors import SAMPLE_test
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
@@ -23,6 +24,9 @@ train["merchant_risk"] = merchant_risk.score(train, train)
 test["merchant_risk"]  = merchant_risk.score(test, train)
 train["category_amount"] = category_amount.score(train, train)
 test["category_amount"]  = category_amount.score(test, train)
+#category_risk learns category fraud rates from the labeled train split, so test rows never see their own labels
+train["category_risk"] = category_risk.score(train, train)
+test["category_risk"]  = category_risk.score(test, train)
 
 #combine detecors into ensemble scores using weights
 #right now only one detector exists, so weight = 1.0 and ensemble == amount_anomaly
@@ -39,6 +43,8 @@ merchant_risk_train = acc(train["merchant_risk"], train["fraud"])
 merchant_risk_test  = acc(test["merchant_risk"],  test["fraud"])
 category_amount_train = acc(train["category_amount"], train["fraud"])
 category_amount_test  = acc(test["category_amount"],  test["fraud"])
+category_risk_train = acc(train["category_risk"], train["fraud"])
+category_risk_test  = acc(test["category_risk"],  test["fraud"])
 ensemble_train = acc(train["score"], train["fraud"])
 ensemble_test  = acc(test["score"],  test["fraud"])
 
@@ -47,5 +53,6 @@ print(f"{'name':<18} {'train':>7} {'test'}")
 print(f"{'amount_anomaly':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
 print(f"{'merchant_risk':<20} {merchant_risk_train:.4f}  {merchant_risk_test:.4f}")
 print(f"{'category_amount':<20} {category_amount_train:.4f}  {category_amount_test:.4f}")
+print(f"{'category_risk':<20} {category_risk_train:.4f}  {category_risk_test:.4f}")
 #print(f"{'SAMPLE_detector':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
 print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
