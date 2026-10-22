@@ -1,8 +1,6 @@
 import pandas as pd
 #### HIRA ADDED VELOCITY####
-from detectors import amount_anomaly, velocity
-from detectors import merchant_risk, category_amount
-from detectors import category_risk   # Mansi Ganga Nayak
+from detectors import amount_anomaly, merchant_risk, category_amount, category_risk, velocity
 #from detectors import SAMPLE_test
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
@@ -23,16 +21,22 @@ test["amount_anomaly"]  = amount_anomaly.score(test)
 #learned from train only
 train["merchant_risk"] = merchant_risk.score(train, train)
 test["merchant_risk"]  = merchant_risk.score(test, train)
+
 train["category_amount"] = category_amount.score(train, train)
 test["category_amount"]  = category_amount.score(test, train)
 #category_risk learns category fraud rates from the labeled train split, so test rows never see their own labels
 train["category_risk"] = category_risk.score(train, train)
 test["category_risk"]  = category_risk.score(test, train)
 
+train["velocity"] = velocity.score(train)
+test["velocity"]  = velocity.score(test)
+
 #combine detecors into ensemble scores using weights
 #right now only one detector exists, so weight = 1.0 and ensemble == amount_anomaly
 #as other detectors are added, add weighted terms here like this:
 #train["score"] = 0.6 * train["amount_anomaly"] + 0.3 * train["velocity"] + .1 * train["another_detector]"]
+
+#NEW UPDATE I AM FULLY REDOING THE ENSEMBLE SO IGNORE THIS FOR NOW.
 train["score"] = 1.0 * train["amount_anomaly"]
 test["score"]  = 1.0 * test["amount_anomaly"]
 
@@ -46,6 +50,8 @@ category_amount_train = acc(train["category_amount"], train["fraud"])
 category_amount_test  = acc(test["category_amount"],  test["fraud"])
 category_risk_train = acc(train["category_risk"], train["fraud"])
 category_risk_test  = acc(test["category_risk"],  test["fraud"])
+velocity_train = acc(train["velocity"], train["fraud"])
+velocity_test  = acc(test["velocity"],  test["fraud"])
 ensemble_train = acc(train["score"], train["fraud"])
 ensemble_test  = acc(test["score"],  test["fraud"])
 
@@ -55,5 +61,6 @@ print(f"{'amount_anomaly':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:
 print(f"{'merchant_risk':<20} {merchant_risk_train:.4f}  {merchant_risk_test:.4f}")
 print(f"{'category_amount':<20} {category_amount_train:.4f}  {category_amount_test:.4f}")
 print(f"{'category_risk':<20} {category_risk_train:.4f}  {category_risk_test:.4f}")
+print(f"{'velocity':<20} {velocity_train:.4f}  {velocity_test:.4f}")
 #print(f"{'SAMPLE_detector':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
 print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
