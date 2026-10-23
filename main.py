@@ -55,6 +55,29 @@ velocity_test  = acc(test["velocity"],  test["fraud"])
 ensemble_train = acc(train["score"], train["fraud"])
 ensemble_test  = acc(test["score"],  test["fraud"])
 
+# --- fraud rate per score bucket, for each detector ---
+bins = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+labels = [f"{bins[i]:.2f}-{bins[i+1]:.2f}" for i in range(len(bins)-1)]
+
+DETECTOR_COLUMNS = [
+    ("amount_anomaly",  "amount_anomaly"),
+    ("merchant_risk",   "merchant_risk"),
+    ("category_amount", "category_amount"),
+    ("category_risk",   "category_risk"),
+    ("velocity",        "velocity"),
+]
+
+for name, col in DETECTOR_COLUMNS:
+    for split, df in [("train", train), ("test", test)]:
+        bucket = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True, right=False)
+        grouped = df.groupby(bucket, observed=False)["fraud"].agg(["mean", "count"])
+
+        print(f"\n{name} — {split}")
+        print(f"{'score range':<12} {'fraud %':>8} {'rows':>8}")
+        for rng, row in grouped.iterrows():
+            print(f"{rng:<12} {row['mean']*100:>7.1f}% {int(row['count']):>8}")
+
+
 #output name and accuracy of each detector and the ensemble
 print(f"{'name':<18} {'train':>7} {'test'}")
 print(f"{'amount_anomaly':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
