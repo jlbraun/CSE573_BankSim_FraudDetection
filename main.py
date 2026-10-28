@@ -1,6 +1,7 @@
 import pandas as pd
 #### HIRA ADDED VELOCITY####
 from detectors import amount_anomaly, merchant_risk, category_amount, category_risk, velocity
+from detectors import merchant_novelty
 #from detectors import SAMPLE_test
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
@@ -30,6 +31,10 @@ test["category_risk"]  = category_risk.score(test, train)
 
 train["velocity"] = velocity.score(train)
 test["velocity"]  = velocity.score(test)
+#merchant_novelty counts earlier purchases from the full dataset (no labels used), since downsampling removes most history
+history = pd.read_csv("data/bs140513_032310.csv")
+train["merchant_novelty"] = merchant_novelty.score(train, history)
+test["merchant_novelty"]  = merchant_novelty.score(test, history)
 
 #combine detecors into ensemble scores using weights
 #right now only one detector exists, so weight = 1.0 and ensemble == amount_anomaly
@@ -52,11 +57,14 @@ category_risk_train = acc(train["category_risk"], train["fraud"])
 category_risk_test  = acc(test["category_risk"],  test["fraud"])
 velocity_train = acc(train["velocity"], train["fraud"])
 velocity_test  = acc(test["velocity"],  test["fraud"])
+merchant_novelty_train = acc(train["merchant_novelty"], train["fraud"])
+merchant_novelty_test  = acc(test["merchant_novelty"],  test["fraud"])
 ensemble_train = acc(train["score"], train["fraud"])
 ensemble_test  = acc(test["score"],  test["fraud"])
 
 # --- fraud rate per score bucket, for each detector ---
-bins = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+bins = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0,1.1]
+#increased the bin size to include 1.0 for the fact that detectors can return a score of 1.0 and that is currently excluded from our logic
 labels = [f"{bins[i]:.2f}-{bins[i+1]:.2f}" for i in range(len(bins)-1)]
 
 DETECTOR_COLUMNS = [
@@ -65,11 +73,12 @@ DETECTOR_COLUMNS = [
     ("category_amount", "category_amount"),
     ("category_risk",   "category_risk"),
     ("velocity",        "velocity"),
+    ("merchant_novelty", "merchant_novelty"),
 ]
 
 for name, col in DETECTOR_COLUMNS:
     for split, df in [("train", train), ("test", test)]:
-        bucket = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True, right=False)
+        bucket = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True, right=False)        
         grouped = df.groupby(bucket, observed=False)["fraud"].agg(["mean", "count"])
 
         print(f"\n{name} — {split}")
@@ -85,5 +94,6 @@ print(f"{'merchant_risk':<20} {merchant_risk_train:.4f}  {merchant_risk_test:.4f
 print(f"{'category_amount':<20} {category_amount_train:.4f}  {category_amount_test:.4f}")
 print(f"{'category_risk':<20} {category_risk_train:.4f}  {category_risk_test:.4f}")
 print(f"{'velocity':<20} {velocity_train:.4f}  {velocity_test:.4f}")
+print(f"{'merchant_novelty':<20} {merchant_novelty_train:.4f}  {merchant_novelty_test:.4f}")
 #print(f"{'SAMPLE_detector':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
 print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
