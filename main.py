@@ -2,6 +2,7 @@ import pandas as pd
 #### HIRA ADDED VELOCITY####
 from detectors import amount_anomaly, merchant_risk, category_amount, category_risk, velocity
 from detectors import merchant_novelty
+from detectors import time_gap, category_novelty   # Mansi Ganga Nayak
 #from detectors import SAMPLE_test
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
@@ -35,6 +36,11 @@ test["velocity"]  = velocity.score(test)
 history = pd.read_csv("data/bs140513_032310.csv")
 train["merchant_novelty"] = merchant_novelty.score(train, history)
 test["merchant_novelty"]  = merchant_novelty.score(test, history)
+#time_gap and category_novelty only look at each customer's EARLIER transactions in the full history
+train["time_gap"] = time_gap.score(train, history)
+test["time_gap"]  = time_gap.score(test, history)
+train["category_novelty"] = category_novelty.score(train, history)
+test["category_novelty"]  = category_novelty.score(test, history)
 
 #combine detecors into ensemble scores using weights
 #right now only one detector exists, so weight = 1.0 and ensemble == amount_anomaly
@@ -97,3 +103,7 @@ print(f"{'velocity':<20} {velocity_train:.4f}  {velocity_test:.4f}")
 print(f"{'merchant_novelty':<20} {merchant_novelty_train:.4f}  {merchant_novelty_test:.4f}")
 #print(f"{'SAMPLE_detector':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
 print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
+
+# Mansi Ganga Nayak - time gap and category novelty
+print(f"{'time_gap':<20} {acc(train['time_gap'], train['fraud']):.4f}  {acc(test['time_gap'], test['fraud']):.4f}")
+print(f"{'category_novelty':<20} {acc(train['category_novelty'], train['fraud']):.4f}  {acc(test['category_novelty'], test['fraud']):.4f}")
