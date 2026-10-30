@@ -39,6 +39,7 @@ test["merchant_novelty"]  = merchant_novelty.score(test, history)
 #time_gap and category_novelty only look at each customer's EARLIER transactions in the full history
 train["time_gap"] = time_gap.score(train, history)
 test["time_gap"]  = time_gap.score(test, history)
+
 train["category_novelty"] = category_novelty.score(train, history)
 test["category_novelty"]  = category_novelty.score(test, history)
 
@@ -67,6 +68,11 @@ merchant_novelty_train = acc(train["merchant_novelty"], train["fraud"])
 merchant_novelty_test  = acc(test["merchant_novelty"],  test["fraud"])
 ensemble_train = acc(train["score"], train["fraud"])
 ensemble_test  = acc(test["score"],  test["fraud"])
+#add time_gap and category_amount
+time_gap_train = acc(train["time_gap"], train["fraud"])
+time_gap_test  = acc(test["time_gap"],  test["fraud"])
+category_novelty_train = acc(train["category_novelty"], train["fraud"]) 
+category_novelty_test  = acc(test["category_novelty"],  test["fraud"])
 
 # --- fraud rate per score bucket, for each detector ---
 bins = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]
