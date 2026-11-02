@@ -3,7 +3,9 @@ import pandas as pd
 from detectors import amount_anomaly, merchant_risk, category_amount, category_risk, velocity
 from detectors import merchant_novelty
 from detectors import time_gap, category_novelty   # Mansi Ganga Nayak
-#from detectors import SAMPLE_test
+from sklearn.linear_model import LogisticRegression #this is for the ensemble model
+from sklearn.ensemble import GradientBoostingClassifier #this is for boosting the ensemble
+#from sklearn.model_selection import GridSearchCV
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
 train = pd.read_csv("data/banksim_downsampled_train.csv")
@@ -43,14 +45,26 @@ test["time_gap"]  = time_gap.score(test, history)
 train["category_novelty"] = category_novelty.score(train, history)
 test["category_novelty"]  = category_novelty.score(test, history)
 
-#combine detecors into ensemble scores using weights
-#right now only one detector exists, so weight = 1.0 and ensemble == amount_anomaly
-#as other detectors are added, add weighted terms here like this:
-#train["score"] = 0.6 * train["amount_anomaly"] + 0.3 * train["velocity"] + .1 * train["another_detector]"]
 
-#NEW UPDATE I AM FULLY REDOING THE ENSEMBLE SO IGNORE THIS FOR NOW.
-train["score"] = 1.0 * train["amount_anomaly"]
-test["score"]  = 1.0 * test["amount_anomaly"]
+#START OF GRADIENT BOOSTING ENSEMBLE:
+model = GradientBoostingClassifier(
+    n_estimators=100,
+    max_depth=4,
+    learning_rate=0.05,
+    subsample=0.8,
+    random_state=42
+)
+FEATURES = ["amount_anomaly", "merchant_risk", "merchant_novelty", "velocity", "time_gap", "category_amount", "category_risk", "category_novelty"]
+
+model.fit(train[FEATURES], train["fraud"])
+train["score"] = model.predict_proba(train[FEATURES])[:, 1]
+test["score"]  = model.predict_proba(test[FEATURES])[:, 1]
+
+# Show feature importance
+for name, imp in zip(FEATURES, model.feature_importances_):
+    print(f"{name:<20} {imp:.3f}")
+# END OF GRADIENT BOOSTING ENSEMBLE
+
 
 #Calculate accuracy for each detector and the ensemble on both splits, more test data will be added here in the future,
 #but Joseph will handle all that so focus on your individual detectors for now
@@ -66,13 +80,12 @@ velocity_train = acc(train["velocity"], train["fraud"])
 velocity_test  = acc(test["velocity"],  test["fraud"])
 merchant_novelty_train = acc(train["merchant_novelty"], train["fraud"])
 merchant_novelty_test  = acc(test["merchant_novelty"],  test["fraud"])
-ensemble_train = acc(train["score"], train["fraud"])
-ensemble_test  = acc(test["score"],  test["fraud"])
-#add time_gap and category_amount
 time_gap_train = acc(train["time_gap"], train["fraud"])
 time_gap_test  = acc(test["time_gap"],  test["fraud"])
 category_novelty_train = acc(train["category_novelty"], train["fraud"]) 
 category_novelty_test  = acc(test["category_novelty"],  test["fraud"])
+ensemble_train = acc(train["score"], train["fraud"])
+ensemble_test  = acc(test["score"],  test["fraud"])
 
 # --- fraud rate per score bucket, for each detector ---
 bins = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]
@@ -107,9 +120,6 @@ print(f"{'category_amount':<20} {category_amount_train:.4f}  {category_amount_te
 print(f"{'category_risk':<20} {category_risk_train:.4f}  {category_risk_test:.4f}")
 print(f"{'velocity':<20} {velocity_train:.4f}  {velocity_test:.4f}")
 print(f"{'merchant_novelty':<20} {merchant_novelty_train:.4f}  {merchant_novelty_test:.4f}")
-#print(f"{'SAMPLE_detector':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
-print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
-
-# Mansi Ganga Nayak - time gap and category novelty
 print(f"{'time_gap':<20} {acc(train['time_gap'], train['fraud']):.4f}  {acc(test['time_gap'], test['fraud']):.4f}")
 print(f"{'category_novelty':<20} {acc(train['category_novelty'], train['fraud']):.4f}  {acc(test['category_novelty'], test['fraud']):.4f}")
+print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
