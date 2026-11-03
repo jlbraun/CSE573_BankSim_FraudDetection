@@ -18,6 +18,15 @@ test = pd.read_csv("data/banksim_downsampled_test.csv")
 def acc(scores, labels):
     return ((scores >= 0.05) == labels).mean()
 
+def conf(scores, labels):
+    pred = scores >= 0.05
+    fraud = labels == 1
+    tp = ((pred) & (fraud)).mean()
+    fp = ((pred) & (~fraud)).mean()
+    tn = ((~pred) & (~fraud)).mean()
+    fn = ((~pred) & (fraud)).mean()
+    return tp, fp, tn, fn
+
 #run each detector basically adding a new column at the end to record the "Score" or what number the detector gives each row
 #This score will be used in acc function to compare against the actual labels
 train["amount_anomaly"] = amount_anomaly.score(train)
@@ -60,7 +69,9 @@ model.fit(train[FEATURES], train["fraud"])
 train["score"] = model.predict_proba(train[FEATURES])[:, 1]
 test["score"]  = model.predict_proba(test[FEATURES])[:, 1]
 
+
 # Show feature importance
+print("\nGradient Model Feature Importance: ")
 for name, imp in zip(FEATURES, model.feature_importances_):
     print(f"{name:<20} {imp:.3f}")
 # END OF GRADIENT BOOSTING ENSEMBLE
@@ -92,34 +103,35 @@ bins = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]
 #increased the bin size to include 1.0 for the fact that detectors can return a score of 1.0 and that is currently excluded from our logic
 labels = [f"{bins[i]:.2f}-{bins[i+1]:.2f}" for i in range(len(bins)-1)]
 
-DETECTOR_COLUMNS = [
-    ("amount_anomaly",  "amount_anomaly"),
-    ("merchant_risk",   "merchant_risk"),
-    ("category_amount", "category_amount"),
-    ("category_risk",   "category_risk"),
-    ("velocity",        "velocity"),
+COLS = [
+    ("amount_anomaly",   "amount_anomaly"),
+    ("merchant_risk",    "merchant_risk"),
+    ("category_amount",  "category_amount"),
+    ("category_risk",    "category_risk"),
+    ("velocity",         "velocity"),
     ("merchant_novelty", "merchant_novelty"),
+    ("time_gap",         "time_gap"),
+    ("category_novelty", "category_novelty"),
+    ("ensemble",         "score"),
 ]
 
-for name, col in DETECTOR_COLUMNS:
+#bucket tables
+for name, col in COLS:
+    if name == "ensemble":
+        continue
     for split, df in [("train", train), ("test", test)]:
-        bucket = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True, right=False)        
+        bucket = pd.cut(df[col], bins=bins, labels=labels, include_lowest=True, right=False)
         grouped = df.groupby(bucket, observed=False)["fraud"].agg(["mean", "count"])
-
         print(f"\n{name} — {split}")
         print(f"{'score range':<12} {'fraud %':>8} {'rows':>8}")
         for rng, row in grouped.iterrows():
             print(f"{rng:<12} {row['mean']*100:>7.1f}% {int(row['count']):>8}")
 
-
-#output name and accuracy of each detector and the ensemble
-print(f"{'name':<18} {'train':>7} {'test'}")
-print(f"{'amount_anomaly':<20} {amount_anomaly_train:.4f}  {amount_anomaly_test:.4f}")
-print(f"{'merchant_risk':<20} {merchant_risk_train:.4f}  {merchant_risk_test:.4f}")
-print(f"{'category_amount':<20} {category_amount_train:.4f}  {category_amount_test:.4f}")
-print(f"{'category_risk':<20} {category_risk_train:.4f}  {category_risk_test:.4f}")
-print(f"{'velocity':<20} {velocity_train:.4f}  {velocity_test:.4f}")
-print(f"{'merchant_novelty':<20} {merchant_novelty_train:.4f}  {merchant_novelty_test:.4f}")
-print(f"{'time_gap':<20} {acc(train['time_gap'], train['fraud']):.4f}  {acc(test['time_gap'], test['fraud']):.4f}")
-print(f"{'category_novelty':<20} {acc(train['category_novelty'], train['fraud']):.4f}  {acc(test['category_novelty'], test['fraud']):.4f}")
-print(f"{'ensemble':<20} {ensemble_train:.4f}  {ensemble_test:.4f}")
+#accuracy and confusion matrix
+for split, df in [("train", train), ("test", test)]:
+    print(f"\n {split.upper()}:")
+    print(f"{'name':<20} {'acc':>7} {'TP%':>7} {'FP%':>7} {'TN%':>7} {'FN%':>7}")
+    for name, col in COLS:
+        s, l = df[col], df["fraud"]
+        tp, fp, tn, fn = conf(s, l)
+        print(f"{name:<20} {acc(s,l):>7.4f} {tp*100:>6.1f}% {fp*100:>6.1f}% {tn*100:>6.1f}% {fn*100:>6.1f}%")
