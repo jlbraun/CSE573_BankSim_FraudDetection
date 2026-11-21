@@ -72,7 +72,8 @@ model = GradientBoostingClassifier(
     max_depth=6,          #tuned 4 -> 6 (analysis/tune.py, PR-AUC on realistic validation set)
     learning_rate=0.03,   #tuned 0.05 -> 0.03
     subsample=0.8,
-    random_state=42
+    random_state=42,
+    max_features=0.5
 )
 FEATURES = ["amount_anomaly", "merchant_risk", "merchant_novelty", "velocity", "time_gap", "category_amount", "category_risk", "category_novelty"]
 
