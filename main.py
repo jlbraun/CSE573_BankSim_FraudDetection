@@ -9,7 +9,7 @@ from sklearn.ensemble import GradientBoostingClassifier #this is for boosting th
 
 #load the imported data files, if you don't have them run dataCleaner.py, if it doens't work then read the README
 train = pd.read_csv("data/banksim_downsampled_train.csv")
-test = pd.read_csv("data/banksim_downsampled_test.csv")
+test = pd.read_csv("data/original_uneven_test.csv")
 
 #returns the percent of the time the predicted scores match the actual labels
 #current score threshold is .05, this is arbitrary as it yielded a higher score when testing then the default of .5
