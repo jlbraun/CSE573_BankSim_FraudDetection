@@ -1,0 +1,18 @@
+{
+  "detector_params": {
+    "velocity_window": 1,
+    "cnov_k": 0.0,
+    "tgap_first": 0.5,
+    "merchant_smoothing": 5.0,
+    "category_smoothing": 5.0
+  },
+  "gb_params": {
+    "n_estimators": 100,
+    "max_depth": 6,
+    "learning_rate": 0.03,
+    "subsample": 0.8,
+    "min_samples_leaf": 1,
+    "random_state": 42
+  },
+  "threshold": 0.9654860891715158
+}

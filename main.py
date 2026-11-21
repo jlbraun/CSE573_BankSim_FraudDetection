@@ -15,11 +15,21 @@ test = pd.read_csv("data/banksim_downsampled_test.csv")
 #current score threshold is .05, this is arbitrary as it yielded a higher score when testing then the default of .5
 #this is because of how my amount_anomaly.py created fraud scores and in the future I will probably make a more
 #refined version for testing all detectors. Will probably automate it so we can find the ideal threshold
-def acc(scores, labels):
-    return ((scores >= 0.05) == labels).mean()
+#per-detector decision thresholds, tuned on the 50/50 TRAIN split (analysis/tune.py, Mansi)
+#a single .05 cutoff made strong detectors look weak (e.g. category_novelty 52% -> 89% at its own cutoff)
+THRESHOLDS = {
+    "amount_anomaly": 0.0346, "merchant_risk": 0.4167, "category_amount": 0.8667,
+    "category_risk": 0.2273, "velocity": 0.05, "merchant_novelty": 0.1429,
+    "time_gap": 0.3333, "category_novelty": 0.5, "score": 0.05,   #ensemble kept at .05 (0% missed fraud on the 50/50 split)
+}
+#NOTE: on realistic data (0.25% fraud) the ensemble needs a much higher cutoff, see analysis/RESULTS_tuning.md
+#(0.05 -> 4.8% precision; 0.898 -> 30% precision at 89% recall; 0.966 -> 67% precision at 66% recall)
 
-def conf(scores, labels):
-    pred = scores >= 0.05
+def acc(scores, labels, thr=0.05):
+    return ((scores >= thr) == labels).mean()
+
+def conf(scores, labels, thr=0.05):
+    pred = scores >= thr
     fraud = labels == 1
     tp = ((pred) & (fraud)).mean()
     fp = ((pred) & (~fraud)).mean()
@@ -32,14 +42,15 @@ def conf(scores, labels):
 train["amount_anomaly"] = amount_anomaly.score(train)
 test["amount_anomaly"]  = amount_anomaly.score(test)
 #learned from train only
-train["merchant_risk"] = merchant_risk.score(train, train)
-test["merchant_risk"]  = merchant_risk.score(test, train)
+#smoothing tuned 20 -> 5 (analysis/tune.py)
+train["merchant_risk"] = merchant_risk.score(train, train, smoothing=5.0)
+test["merchant_risk"]  = merchant_risk.score(test, train, smoothing=5.0)
 
 train["category_amount"] = category_amount.score(train, train)
 test["category_amount"]  = category_amount.score(test, train)
 #category_risk learns category fraud rates from the labeled train split, so test rows never see their own labels
-train["category_risk"] = category_risk.score(train, train)
-test["category_risk"]  = category_risk.score(test, train)
+train["category_risk"] = category_risk.score(train, train, smoothing=5.0)   #tuned 20 -> 5
+test["category_risk"]  = category_risk.score(test, train, smoothing=5.0)
 
 train["velocity"] = velocity.score(train)
 test["velocity"]  = velocity.score(test)
@@ -51,15 +62,15 @@ test["merchant_novelty"]  = merchant_novelty.score(test, history)
 train["time_gap"] = time_gap.score(train, history)
 test["time_gap"]  = time_gap.score(test, history)
 
-train["category_novelty"] = category_novelty.score(train, history)
-test["category_novelty"]  = category_novelty.score(test, history)
+train["category_novelty"] = category_novelty.score(train, history, k=0.0)   #tuned k 2 -> 0
+test["category_novelty"]  = category_novelty.score(test, history, k=0.0)
 
 
 #START OF GRADIENT BOOSTING ENSEMBLE:
 model = GradientBoostingClassifier(
     n_estimators=100,
-    max_depth=4,
-    learning_rate=0.05,
+    max_depth=6,          #tuned 4 -> 6 (analysis/tune.py, PR-AUC on realistic validation set)
+    learning_rate=0.03,   #tuned 0.05 -> 0.03
     subsample=0.8,
     random_state=42
 )
@@ -133,5 +144,6 @@ for split, df in [("train", train), ("test", test)]:
     print(f"{'name':<20} {'acc':>7} {'TP%':>7} {'FP%':>7} {'TN%':>7} {'FN%':>7}")
     for name, col in COLS:
         s, l = df[col], df["fraud"]
-        tp, fp, tn, fn = conf(s, l)
-        print(f"{name:<20} {acc(s,l):>7.4f} {tp*100:>6.1f}% {fp*100:>6.1f}% {tn*100:>6.1f}% {fn*100:>6.1f}%")
+        t = THRESHOLDS.get(col, 0.05)
+        tp, fp, tn, fn = conf(s, l, t)
+        print(f"{name:<20} {acc(s,l,t):>7.4f} {tp*100:>6.1f}% {fp*100:>6.1f}% {tn*100:>6.1f}% {fn*100:>6.1f}%")
