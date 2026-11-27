@@ -21,7 +21,7 @@ if os.path.exists("data/tuned_thresholds.json"):
 
 #load the imported data files
 train = pd.read_csv("data/banksim_downsampled_train.csv")
-test = pd.read_csv("data/realistic_test_heldout.csv")
+test = pd.read_csv("data/original_uneven_test.csv")
 
 
 def report(name, scores, labels, thr):
@@ -119,12 +119,3 @@ for name, col in COLS:
     s, l = test[col], test["fraud"]
     t = THRESHOLDS.get(col, 0.05)
     report(name, s, l, t)
-
-print("\nDiagnostic — best F1 on TEST (do NOT deploy these; tune on downsampled_test):")
-print(f"{'name':<20} {'best_thr':>9} {'F1':>7} {'P':>7} {'R':>7}")
-for name, col in COLS:
-    s, l = test[col].values, test["fraud"].values
-    prec, rec, thr = precision_recall_curve(l, s)
-    f1 = 2 * prec * rec / (prec + rec + 1e-9)
-    i = int(f1[:-1].argmax())
-    print(f"{name:<20} {thr[i]:>9.4f} {f1[i]:>7.3f} {prec[i]:>7.3f} {rec[i]:>7.3f}")
